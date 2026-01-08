@@ -23,19 +23,9 @@ class FlickConfig:
     detection_confidence: float = 0.7
     tracking_confidence: float = 0.7
     
-    # Gesture sensitivity
-    volume_sensitivity: float = 1.0
-    crossfader_sensitivity: float = 1.0
-    filter_sensitivity: float = 1.0
-    
-    # Control mappings
-    left_hand_controls_crossfader: bool = True
-    left_hand_controls_left_deck: bool = True
-    gesture_smoothing: int = 3  # Number of frames to smooth
-    
-    # Browser settings
-    browser_headless: bool = False
-    auto_close_dialogs: bool = True
+    # Cursor control settings
+    cursor_smoothing: float = 1.0  # Cursor movement smoothing (1.0 = instant, lower = smoother)
+    gesture_smoothing: int = 3  # Number of frames to smooth hand tracking
     
     # UI settings
     show_hand_landmarks: bool = True

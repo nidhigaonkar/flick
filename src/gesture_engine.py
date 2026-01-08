@@ -20,6 +20,9 @@ class GestureType(Enum):
     PINCH_EFFECT = "pinch_effect"
     SWIPE_LEFT = "swipe_left"
     SWIPE_RIGHT = "swipe_right"
+    CLICK = "click"
+    PEACE_SIGN = "peace_sign"
+    THUMBS_UP = "thumbs_up"
 
 
 @dataclass
@@ -50,6 +53,8 @@ class GestureEngine:
         self.left_hand_playing = False
         self.right_hand_playing = False
         self.pinch_effect_active = False
+        self.left_hand_pointing = False
+        self.right_hand_pointing = False
         
         # Smoothing buffer for stability
         self.position_buffer = {
@@ -161,21 +166,38 @@ class GestureEngine:
             hand='Left'
         ))
         
-        # Play/Pause based on hand open/closed
-        if hand['is_open'] and not self.left_hand_playing:
+        # Play/Pause based on hand open/closed (only if not pointing)
+        if not hand.get('is_pointing', False):
+            if hand['is_open'] and not self.left_hand_playing:
+                controls.append(DJControl(
+                    control_type='play_left',
+                    value=1.0,
+                    hand='Left'
+                ))
+                self.left_hand_playing = True
+            elif not hand['is_open'] and self.left_hand_playing:
+                controls.append(DJControl(
+                    control_type='pause_left',
+                    value=0.0,
+                    hand='Left'
+                ))
+                self.left_hand_playing = False
+        
+        # Click gesture (pointing)
+        if hand.get('is_pointing', False) and not self.left_hand_pointing:
             controls.append(DJControl(
-                control_type='play_left',
-                value=1.0,
+                control_type='click',
+                value=palm['x'],  # X position of click
                 hand='Left'
             ))
-            self.left_hand_playing = True
-        elif not hand['is_open'] and self.left_hand_playing:
             controls.append(DJControl(
-                control_type='pause_left',
-                value=0.0,
+                control_type='click_y',
+                value=palm['y'],  # Y position of click
                 hand='Left'
             ))
-            self.left_hand_playing = False
+            self.left_hand_pointing = True
+        elif not hand.get('is_pointing', False):
+            self.left_hand_pointing = False
         
         return controls
     
@@ -213,21 +235,38 @@ class GestureEngine:
             hand='Right'
         ))
         
-        # Play/Pause based on hand open/closed
-        if hand['is_open'] and not self.right_hand_playing:
+        # Play/Pause based on hand open/closed (only if not pointing)
+        if not hand.get('is_pointing', False):
+            if hand['is_open'] and not self.right_hand_playing:
+                controls.append(DJControl(
+                    control_type='play_right',
+                    value=1.0,
+                    hand='Right'
+                ))
+                self.right_hand_playing = True
+            elif not hand['is_open'] and self.right_hand_playing:
+                controls.append(DJControl(
+                    control_type='pause_right',
+                    value=0.0,
+                    hand='Right'
+                ))
+                self.right_hand_playing = False
+        
+        # Click gesture (pointing)
+        if hand.get('is_pointing', False) and not self.right_hand_pointing:
             controls.append(DJControl(
-                control_type='play_right',
-                value=1.0,
+                control_type='click',
+                value=palm['x'],  # X position of click
                 hand='Right'
             ))
-            self.right_hand_playing = True
-        elif not hand['is_open'] and self.right_hand_playing:
             controls.append(DJControl(
-                control_type='pause_right',
-                value=0.0,
+                control_type='click_y',
+                value=palm['y'],  # Y position of click
                 hand='Right'
             ))
-            self.right_hand_playing = False
+            self.right_hand_pointing = True
+        elif not hand.get('is_pointing', False):
+            self.right_hand_pointing = False
         
         return controls
     

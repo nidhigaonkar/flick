@@ -138,9 +138,12 @@ class YouDJController:
             if crossfader:
                 self._drag_slider_to_position(crossfader, value)
                 self.current_values['crossfader'] = value
+                print(f"✓ Crossfader set to {value:.2f}")
+            else:
+                print("⚠ Crossfader element not found on page")
                 
         except Exception as e:
-            print(f"Error setting crossfader: {e}")
+            print(f"✗ Error setting crossfader: {e}")
     
     def set_volume(self, deck: str, value: float):
         """
@@ -229,6 +232,37 @@ class YouDJController:
                 print("Toggled effect")
         except Exception as e:
             print(f"Error toggling effect: {e}")
+    
+    def click_at_position(self, x: float, y: float):
+        """
+        Click at a specific position on the page (normalized 0-1 coordinates)
+        
+        Args:
+            x: Horizontal position (0 = left, 1 = right)
+            y: Vertical position (0 = top, 1 = bottom)
+        """
+        try:
+            # Get viewport dimensions
+            viewport_width = self.driver.execute_script("return window.innerWidth")
+            viewport_height = self.driver.execute_script("return window.innerHeight")
+            
+            # Convert normalized coords to pixel coords
+            pixel_x = int(x * viewport_width)
+            pixel_y = int(y * viewport_height)
+            
+            # Use JavaScript to click at position
+            self.driver.execute_script(f"""
+                var element = document.elementFromPoint({pixel_x}, {pixel_y});
+                if (element) {{
+                    element.click();
+                    console.log('Clicked element:', element);
+                }}
+            """)
+            
+            print(f"Clicked at position ({x:.2f}, {y:.2f})")
+            
+        except Exception as e:
+            print(f"Error clicking at position: {e}")
     
     # Helper methods for finding elements
     

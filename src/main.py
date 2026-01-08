@@ -1,16 +1,14 @@
 """
-Flick - Hand Gesture DJ Controller
+Flick - Hand Gesture Mouse Controller
 Main application entry point
 """
 
-import sys
 import time
 import threading
 from typing import Optional
 
 from hand_tracker import HandTracker
-from gesture_engine import GestureEngine, DJControl
-from browser_controller import YouDJController
+from mouse_controller import MouseController
 from config import ConfigManager
 from ui.main_window import FlickUI
 
@@ -31,12 +29,7 @@ class FlickApp:
             tracking_confidence=self.config.tracking_confidence
         )
         
-        self.gesture_engine = GestureEngine()
-        self.gesture_engine.set_sensitivity('volume', self.config.volume_sensitivity)
-        self.gesture_engine.set_sensitivity('crossfader', self.config.crossfader_sensitivity)
-        self.gesture_engine.set_sensitivity('filter', self.config.filter_sensitivity)
-        
-        self.browser_controller = YouDJController()
+        self.mouse_controller = MouseController()
         
         # Initialize UI
         self.ui = FlickUI(
@@ -63,19 +56,13 @@ class FlickApp:
             self.ui.show_error("Failed to start camera. Please check your webcam connection.")
             return
         
-        # Start browser
-        if not self.browser_controller.start(headless=self.config.browser_headless):
-            self.ui.show_error("Failed to start browser controller.")
-            self.hand_tracker.stop_camera()
-            return
-        
         # Start tracking thread
         self.is_running = True
         self.tracking_thread = threading.Thread(target=self._tracking_loop, daemon=True)
         self.tracking_thread.start()
         
-        print("Flick is running! Control YouDJ with your hands.")
-        self.ui.show_info("Flick is now active! Position your hands in front of the camera.")
+        print("Flick is running! Control your mouse with hand gestures.")
+        self.ui.show_info("Flick is now active! Move your hand to control the cursor.")
     
     def stop_tracking(self):
         """Stop the hand tracking and gesture control"""
@@ -92,8 +79,7 @@ class FlickApp:
         
         # Stop components
         self.hand_tracker.stop_camera()
-        self.browser_controller.stop()
-        self.gesture_engine.reset()
+        self.mouse_controller.cleanup()
         
         print("Flick stopped.")
     
@@ -109,14 +95,21 @@ class FlickApp:
                     self.ui.update_video_frame(frame)
                 
                 if hands_data:
-                    # Process gestures
-                    controls = self.gesture_engine.process_hands(hands_data)
+                    # Use primary hand (right hand if available, else left)
+                    primary_hand = None
+                    for hand in hands_data:
+                        if hand['label'] == 'Right':
+                            primary_hand = hand
+                            break
+                    if not primary_hand and hands_data:
+                        primary_hand = hands_data[0]
                     
-                    # Execute controls on YouDJ
-                    self._execute_controls(controls)
+                    # Update mouse controller with primary hand
+                    if primary_hand:
+                        self.mouse_controller.update_from_hand(primary_hand)
                     
                     # Update UI status
-                    self._update_ui_status(hands_data, controls)
+                    self._update_ui_status_mouse(hands_data)
                 else:
                     # No hands detected
                     self._update_ui_status_no_hands()
@@ -129,52 +122,12 @@ class FlickApp:
             import traceback
             traceback.print_exc()
     
-    def _execute_controls(self, controls: list):
+    def _update_ui_status_mouse(self, hands_data: list):
         """
-        Execute DJ controls on the browser
-        
-        Args:
-            controls: List of DJControl objects
-        """
-        for control in controls:
-            try:
-                if control.control_type == 'crossfader':
-                    self.browser_controller.set_crossfader(control.value)
-                    
-                elif control.control_type == 'volume_left':
-                    self.browser_controller.set_volume('left', control.value)
-                    
-                elif control.control_type == 'volume_right':
-                    self.browser_controller.set_volume('right', control.value)
-                    
-                elif control.control_type == 'play_left':
-                    self.browser_controller.play_deck('left')
-                    
-                elif control.control_type == 'play_right':
-                    self.browser_controller.play_deck('right')
-                    
-                elif control.control_type == 'pause_left':
-                    self.browser_controller.pause_deck('left')
-                    
-                elif control.control_type == 'pause_right':
-                    self.browser_controller.pause_deck('right')
-                    
-                elif control.control_type == 'filter':
-                    self.browser_controller.set_filter(control.value)
-                    
-                elif control.control_type == 'toggle_effect':
-                    self.browser_controller.toggle_effect()
-                    
-            except Exception as e:
-                print(f"Error executing control {control.control_type}: {e}")
-    
-    def _update_ui_status(self, hands_data: list, controls: list):
-        """
-        Update UI with current gesture status
+        Update UI with current mouse control status
         
         Args:
             hands_data: Hand tracking data
-            controls: List of DJ controls
         """
         status = {}
         
@@ -185,19 +138,38 @@ class FlickApp:
         status['left_hand'] = "✅ Detected" if left_detected else "❌ Not detected"
         status['right_hand'] = "✅ Detected" if right_detected else "❌ Not detected"
         
-        # Control values
-        for control in controls:
-            if control.control_type in ['crossfader', 'volume_left', 'volume_right', 'filter']:
-                display_value = f"{control.value:.2f}"
-                
-                if control.control_type == 'crossfader':
-                    status['crossfader'] = display_value
-                elif control.control_type == 'volume_left':
-                    status['volume_left'] = display_value
-                elif control.control_type == 'volume_right':
-                    status['volume_right'] = display_value
-                elif control.control_type == 'filter':
-                    status['filter'] = display_value
+        # Get primary hand gestures
+        primary_hand = None
+        for hand in hands_data:
+            if hand['label'] == 'Right':
+                primary_hand = hand
+                break
+        if not primary_hand and hands_data:
+            primary_hand = hands_data[0]
+        
+        if primary_hand:
+            # Show active gestures
+            gestures = []
+            if primary_hand.get('is_pointing'):
+                gestures.append('👆 CLICK')
+            if primary_hand.get('is_pinching'):
+                gestures.append('🤏 DRAG')
+            if primary_hand.get('is_peace'):
+                gestures.append('✌️ RIGHT-CLICK')
+            if primary_hand.get('is_open'):
+                gestures.append('🫳 OPEN')
+            if not primary_hand.get('is_open') and not any([primary_hand.get('is_pointing'), primary_hand.get('is_pinching'), primary_hand.get('is_peace')]):
+                gestures.append('✊ CLOSED')
+            
+            status['crossfader'] = " | ".join(gestures) if gestures else "Move cursor"
+            status['volume_left'] = f"X: {primary_hand['palm_position']['x']:.2f}"
+            status['volume_right'] = f"Y: {primary_hand['palm_position']['y']:.2f}"
+            status['filter'] = "Mouse mode"
+        else:
+            status['crossfader'] = "--"
+            status['volume_left'] = "--"
+            status['volume_right'] = "--"
+            status['filter'] = "--"
         
         self.ui.update_gesture_status(status)
     
@@ -215,30 +187,26 @@ class FlickApp:
     
     def on_sensitivity_change(self, control: str, value: float):
         """
-        Handle sensitivity slider changes
+        Handle sensitivity slider changes (for cursor smoothing)
         
         Args:
-            control: Control name ('volume', 'crossfader', 'filter')
+            control: Control name (currently unused, kept for UI compatibility)
             value: New sensitivity value
         """
-        self.gesture_engine.set_sensitivity(control, value)
+        # Map sensitivity to cursor smoothing (inverse: higher sensitivity = less smoothing)
+        smoothing = 1.0 / max(value, 0.1)  # Prevent division by zero
+        smoothing = min(smoothing, 1.0)  # Cap at 1.0 (instant response)
+        self.mouse_controller.set_smooth_factor(smoothing)
         
         # Update config
-        if control == 'volume':
-            self.config_manager.update(volume_sensitivity=value)
-        elif control == 'crossfader':
-            self.config_manager.update(crossfader_sensitivity=value)
-        elif control == 'filter':
-            self.config_manager.update(filter_sensitivity=value)
-        
-        # Save config
+        self.config_manager.update(cursor_smoothing=value)
         self.config_manager.save()
     
     def run(self):
         """Run the application"""
         try:
             print("=" * 50)
-            print("✋ FLICK - Hand Gesture DJ Controller")
+            print("✋ FLICK - Hand Gesture Mouse Controller")
             print("=" * 50)
             print("\nStarting application...")
             
@@ -260,6 +228,7 @@ class FlickApp:
         
         self.stop_tracking()
         self.hand_tracker.cleanup()
+        self.mouse_controller.cleanup()
         
         print("Goodbye! 🎵")
 

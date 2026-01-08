@@ -138,10 +138,10 @@ class FlickUI:
         gestures = [
             ('Left Hand', 'left_hand'),
             ('Right Hand', 'right_hand'),
-            ('Crossfader', 'crossfader'),
-            ('Volume L', 'volume_left'),
-            ('Volume R', 'volume_right'),
-            ('Filter', 'filter')
+            ('Gesture', 'crossfader'),
+            ('Position X', 'volume_left'),
+            ('Position Y', 'volume_right'),
+            ('Mode', 'filter')
         ]
         
         for display_name, key in gestures:
@@ -188,9 +188,7 @@ class FlickUI:
         self.sensitivity_sliders = {}
         
         controls = [
-            ('Volume', 'volume', 1.0),
-            ('Crossfader', 'crossfader', 1.0),
-            ('Filter', 'filter', 1.0)
+            ('Smoothing', 'volume', 1.0),
         ]
         
         for display_name, key, default in controls:
@@ -239,12 +237,12 @@ class FlickUI:
         instr_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=10)
         
         instructions = [
-            "✋ Left Hand X → Crossfader",
-            "📊 Hand Y → Volume",
-            "▶️  Open Palm → Play",
-            "⏸️  Closed Fist → Pause",
-            "🎚️ Right Hand X → Filter",
-            "🤏 Both Pinch → Effect"
+            "🖱️ Move Hand → Move Cursor",
+            "👆 Point (Index) → Click",
+            "🤏 Pinch → Click & Drag",
+            "✌️ Peace Sign → Right Click",
+            "🫳 Open Palm → Move Only",
+            "✊ Closed Fist → Move Only"
         ]
         
         for instr in instructions:

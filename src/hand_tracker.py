@@ -315,12 +315,20 @@ class HandTracker:
         # Calculate pinch gesture (thumb tip to index tip distance)
         is_pinching = self._is_pinching(landmarks)
         
+        # Calculate other gestures
+        is_pointing = self._is_pointing(landmarks)
+        is_peace = self._is_peace_sign(landmarks)
+        is_thumbs_up = self._is_thumbs_up(landmarks)
+        
         return {
             'label': hand_label,  # 'Left' or 'Right'
             'landmarks': landmarks,
             'palm_position': {'x': palm_x, 'y': palm_y, 'z': palm_z},
             'is_open': is_open,
-            'is_pinching': is_pinching
+            'is_pinching': is_pinching,
+            'is_pointing': is_pointing,
+            'is_peace': is_peace,
+            'is_thumbs_up': is_thumbs_up
         }
     
     def _extract_hand_info(self, hand_landmarks, handedness) -> Dict:
@@ -358,12 +366,20 @@ class HandTracker:
         # Calculate pinch gesture (thumb tip to index tip distance)
         is_pinching = self._is_pinching(landmarks)
         
+        # Calculate other gestures
+        is_pointing = self._is_pointing(landmarks)
+        is_peace = self._is_peace_sign(landmarks)
+        is_thumbs_up = self._is_thumbs_up(landmarks)
+        
         return {
             'label': hand_label,  # 'Left' or 'Right'
             'landmarks': landmarks,
             'palm_position': {'x': palm_x, 'y': palm_y, 'z': palm_z},
             'is_open': is_open,
-            'is_pinching': is_pinching
+            'is_pinching': is_pinching,
+            'is_pointing': is_pointing,
+            'is_peace': is_peace,
+            'is_thumbs_up': is_thumbs_up
         }
     
     def _is_hand_open(self, landmarks: List[Dict]) -> bool:
@@ -414,6 +430,97 @@ class HandTracker:
         
         # If distance is small, they're pinching
         return distance < 0.05
+    
+    def _is_pointing(self, landmarks: List[Dict]) -> bool:
+        """
+        Determine if hand is pointing (index finger extended, others closed)
+        
+        Args:
+            landmarks: List of landmark dictionaries
+            
+        Returns:
+            True if pointing
+        """
+        # Check if index finger is extended
+        index_extended = self._is_finger_extended(landmarks, 8, 6, 5)
+        
+        # Check if other fingers are closed
+        middle_closed = not self._is_finger_extended(landmarks, 12, 10, 9)
+        ring_closed = not self._is_finger_extended(landmarks, 16, 14, 13)
+        pinky_closed = not self._is_finger_extended(landmarks, 20, 18, 17)
+        
+        return index_extended and middle_closed and ring_closed and pinky_closed
+    
+    def _is_peace_sign(self, landmarks: List[Dict]) -> bool:
+        """
+        Determine if hand is making peace sign (index and middle extended)
+        
+        Args:
+            landmarks: List of landmark dictionaries
+            
+        Returns:
+            True if peace sign
+        """
+        # Check if index and middle fingers are extended
+        index_extended = self._is_finger_extended(landmarks, 8, 6, 5)
+        middle_extended = self._is_finger_extended(landmarks, 12, 10, 9)
+        
+        # Check if other fingers are closed
+        ring_closed = not self._is_finger_extended(landmarks, 16, 14, 13)
+        pinky_closed = not self._is_finger_extended(landmarks, 20, 18, 17)
+        
+        return index_extended and middle_extended and ring_closed and pinky_closed
+    
+    def _is_thumbs_up(self, landmarks: List[Dict]) -> bool:
+        """
+        Determine if hand is thumbs up (thumb extended, others closed)
+        
+        Args:
+            landmarks: List of landmark dictionaries
+            
+        Returns:
+            True if thumbs up
+        """
+        # Check if thumb is extended upward
+        thumb_tip = landmarks[4]
+        thumb_base = landmarks[2]
+        wrist = landmarks[0]
+        
+        # Thumb tip should be higher (lower y) than thumb base and wrist
+        thumb_extended = thumb_tip['y'] < thumb_base['y'] < wrist['y']
+        
+        # Check if other fingers are closed
+        index_closed = not self._is_finger_extended(landmarks, 8, 6, 5)
+        middle_closed = not self._is_finger_extended(landmarks, 12, 10, 9)
+        ring_closed = not self._is_finger_extended(landmarks, 16, 14, 13)
+        pinky_closed = not self._is_finger_extended(landmarks, 20, 18, 17)
+        
+        return thumb_extended and index_closed and middle_closed and ring_closed and pinky_closed
+    
+    def _is_finger_extended(self, landmarks: List[Dict], tip_idx: int, mid_idx: int, base_idx: int) -> bool:
+        """
+        Check if a specific finger is extended
+        
+        Args:
+            landmarks: List of landmark dictionaries
+            tip_idx: Index of fingertip
+            mid_idx: Index of middle joint
+            base_idx: Index of base joint
+            
+        Returns:
+            True if finger is extended
+        """
+        # Calculate distance from tip to base
+        tip = landmarks[tip_idx]
+        base = landmarks[base_idx]
+        
+        distance = np.sqrt(
+            (tip['x'] - base['x']) ** 2 +
+            (tip['y'] - base['y']) ** 2
+        )
+        
+        # If distance is large, finger is extended
+        return distance > 0.15
     
     def cleanup(self):
         """Clean up resources"""
