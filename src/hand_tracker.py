@@ -215,12 +215,14 @@ class HandTracker:
                     # Draw landmarks
                     self._draw_landmarks(frame, hand_landmarks)
                     
-                    # Get handedness
-                    hand_label = "Left"  # Default
+                    # Get handedness (flip labels because MediaPipe sees mirrored from user's perspective)
+                    hand_label = "Right"  # Default (flipped)
                     if detection_result.handedness and idx < len(detection_result.handedness):
                         handedness_list = detection_result.handedness[idx]
                         if handedness_list and len(handedness_list) > 0:
-                            hand_label = handedness_list[0].category_name
+                            # Flip: MediaPipe's "Left" is user's right hand, "Right" is user's left hand
+                            mp_label = handedness_list[0].category_name
+                            hand_label = "Right" if mp_label == "Left" else "Left"
                     
                     # Extract hand data
                     hand_info = self._extract_hand_info_tasks(hand_landmarks, hand_label)
@@ -319,6 +321,7 @@ class HandTracker:
         is_pointing = self._is_pointing(landmarks)
         is_peace = self._is_peace_sign(landmarks)
         is_thumbs_up = self._is_thumbs_up(landmarks)
+        is_two_fingers = self._is_two_fingers_together(landmarks)
         
         return {
             'label': hand_label,  # 'Left' or 'Right'
@@ -328,7 +331,8 @@ class HandTracker:
             'is_pinching': is_pinching,
             'is_pointing': is_pointing,
             'is_peace': is_peace,
-            'is_thumbs_up': is_thumbs_up
+            'is_thumbs_up': is_thumbs_up,
+            'is_two_fingers': is_two_fingers
         }
     
     def _extract_hand_info(self, hand_landmarks, handedness) -> Dict:
@@ -342,8 +346,10 @@ class HandTracker:
         Returns:
             Dictionary with hand information
         """
-        # Get hand label (Left or Right)
-        hand_label = handedness.classification[0].label
+        # Get hand label (Left or Right) - flip labels because MediaPipe sees mirrored from user's perspective
+        mp_label = handedness.classification[0].label
+        # Flip: MediaPipe's "Left" is user's right hand, "Right" is user's left hand
+        hand_label = "Right" if mp_label == "Left" else "Left"
         
         # Extract landmark positions (normalized 0-1)
         landmarks = []
@@ -370,6 +376,7 @@ class HandTracker:
         is_pointing = self._is_pointing(landmarks)
         is_peace = self._is_peace_sign(landmarks)
         is_thumbs_up = self._is_thumbs_up(landmarks)
+        is_two_fingers = self._is_two_fingers_together(landmarks)
         
         return {
             'label': hand_label,  # 'Left' or 'Right'
@@ -379,7 +386,8 @@ class HandTracker:
             'is_pinching': is_pinching,
             'is_pointing': is_pointing,
             'is_peace': is_peace,
-            'is_thumbs_up': is_thumbs_up
+            'is_thumbs_up': is_thumbs_up,
+            'is_two_fingers': is_two_fingers
         }
     
     def _is_hand_open(self, landmarks: List[Dict]) -> bool:
@@ -470,6 +478,33 @@ class HandTracker:
         pinky_closed = not self._is_finger_extended(landmarks, 20, 18, 17)
         
         return index_extended and middle_extended and ring_closed and pinky_closed
+    
+    def _is_two_fingers_together(self, landmarks: List[Dict]) -> bool:
+        """
+        Determine if index and middle fingertips are touching together (scroll gesture)
+        
+        Args:
+            landmarks: List of landmark dictionaries
+            
+        Returns:
+            True if two fingers touching
+        """
+        # Distance between index tip (8) and middle tip (12)
+        index_tip = landmarks[8]
+        middle_tip = landmarks[12]
+        
+        distance = np.sqrt(
+            (index_tip['x'] - middle_tip['x']) ** 2 +
+            (index_tip['y'] - middle_tip['y']) ** 2
+        )
+        
+        # If distance is small, they're touching
+        # Check other fingers are not extended (to distinguish from peace sign)
+        fingers_together = distance < 0.05
+        ring_closed = not self._is_finger_extended(landmarks, 16, 14, 13)
+        pinky_closed = not self._is_finger_extended(landmarks, 20, 18, 17)
+        
+        return fingers_together and ring_closed and pinky_closed
     
     def _is_thumbs_up(self, landmarks: List[Dict]) -> bool:
         """

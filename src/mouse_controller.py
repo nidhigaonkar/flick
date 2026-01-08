@@ -31,6 +31,12 @@ class MouseController:
         self.last_click_time = 0
         self.click_cooldown = 0.3  # Seconds between clicks
         
+        # Scroll state tracking
+        self.is_scrolling = False
+        self.last_scroll_y = None
+        self.scroll_threshold = 0.02  # Minimum Y movement to trigger scroll
+        self.scroll_cooldown = 0.1  # Seconds between scroll events
+        
         # Dead zone (small movements ignored)
         self.dead_zone = 5  # pixels
         
@@ -49,8 +55,8 @@ class MouseController:
         palm_pos = hand_data['palm_position']
         
         # Convert normalized hand position (0-1) to screen coordinates
-        # Flip X for more natural mirrored control
-        target_x = int((1.0 - palm_pos['x']) * self.screen_width)
+        # Direct mapping: hand left = cursor left, hand right = cursor right
+        target_x = int(palm_pos['x'] * self.screen_width)
         target_y = int(palm_pos['y'] * self.screen_height)
         
         # Apply smoothing to cursor movement
@@ -133,6 +139,50 @@ class MouseController:
             factor: Smoothing factor (0.1 = very smooth, 1.0 = instant)
         """
         self.smooth_factor = np.clip(factor, 0.1, 1.0)
+    
+    def handle_scroll_gesture(self, hand_data: Dict):
+        """
+        Handle scroll gesture (two fingers together moving up/down)
+        
+        Args:
+            hand_data: Hand information with gesture flags and position
+        """
+        is_two_fingers = hand_data.get('is_two_fingers', False)
+        palm_y = hand_data['palm_position']['y']
+        current_time = time.time()
+        
+        if is_two_fingers:
+            if not self.is_scrolling:
+                # Start scrolling
+                self.is_scrolling = True
+                self.last_scroll_y = palm_y
+                self.last_scroll_time = current_time
+            else:
+                # Check if enough movement to scroll
+                if current_time - self.last_scroll_time > self.scroll_cooldown:
+                    y_diff = palm_y - self.last_scroll_y
+                    
+                    if abs(y_diff) > self.scroll_threshold:
+                        # Determine scroll direction and amount
+                        scroll_amount = int(abs(y_diff) * 10)  # Scale movement to scroll units
+                        scroll_amount = min(scroll_amount, 20)  # Cap at reasonable amount
+                        
+                        if y_diff > 0:
+                            # Hand moved down (y increases) = scroll down
+                            pyautogui.scroll(-scroll_amount)
+                            print(f"📜 Scrolled down {scroll_amount}")
+                        else:
+                            # Hand moved up (y decreases) = scroll up
+                            pyautogui.scroll(scroll_amount)
+                            print(f"📜 Scrolled up {scroll_amount}")
+                        
+                        self.last_scroll_y = palm_y
+                        self.last_scroll_time = current_time
+        else:
+            # Stop scrolling
+            if self.is_scrolling:
+                self.is_scrolling = False
+                self.last_scroll_y = None
     
     def cleanup(self):
         """Clean up - ensure mouse button is released"""
