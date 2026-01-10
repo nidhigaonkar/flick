@@ -62,7 +62,6 @@ class FlickApp:
         self.tracking_thread.start()
         
         print("Flick is running! Control your mouse with hand gestures.")
-        self.ui.show_info("Flick is now active! Move your hand to control the cursor.")
     
     def stop_tracking(self):
         """Stop the hand tracking and gesture control"""

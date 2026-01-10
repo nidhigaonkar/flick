@@ -33,13 +33,6 @@ Flick now controls your **system mouse cursor** directly! Your hand movements tr
 - Move your hand while pinching to drag
 - Release pinch to let go
 
-### 👆 Pointing - CLICK!
-**How to do it:** Extend index finger only, keep other fingers closed  
-**What it does:**
-- **Left click** at cursor position
-- Use to click buttons, load tracks, select items
-- Cooldown prevents accidental double-clicks
-
 ### ✌️ Peace Sign - RIGHT CLICK!
 **How to do it:** Extend index and middle fingers, keep others closed  
 **What it does:**
@@ -47,10 +40,25 @@ Flick now controls your **system mouse cursor** directly! Your hand movements tr
 - Opens context menus
 - Useful for advanced controls
 
-### 👍 Thumbs Up
-**How to do it:** Extend thumb upward, keep other fingers closed  
-**Status:** Detected but not yet mapped
-**Future use:** Could add custom actions (favorites, markers, etc.)
+## 📜 LEFT HAND SCROLLING
+
+The **left hand** is dedicated to scrolling. Use different finger counts to control scroll direction:
+
+### 👆 1 Finger Extended - SCROLL UP
+**How to do it:** Extend 1 finger on your LEFT hand  
+**What it does:**
+- **Scrolls up** continuously while finger is extended
+- Perfect for scrolling through content upward
+- Works on any webpage or application
+
+### ✌️ 2 Fingers Extended - SCROLL DOWN
+**How to do it:** Extend 2 fingers on your LEFT hand  
+**What it does:**
+- **Scrolls down** continuously while fingers are extended
+- Perfect for scrolling through content downward
+- Works on any webpage or application
+
+**Note:** Left hand gestures (pinch, pointing, etc.) are disabled - left hand is for scrolling only!
 
 ## Hand Position = Cursor Position
 
@@ -88,10 +96,10 @@ The cursor movement is **mirrored** for natural feel (like looking in a mirror).
 ### For DJing with YouDJ
 1. **Open YouDJ** in browser first
 2. **Click START** in Flick
-3. **Move hand** to position cursor over buttons/sliders
-4. **Point** to click play/load buttons
-5. **Pinch and drag** for crossfader, volume, and waveform control
-6. **Peace sign** for context menus if needed
+3. **Move RIGHT hand** to position cursor over buttons/sliders
+4. **Pinch and drag** for crossfader, volume, and waveform control
+5. **Peace sign** (right hand) for context menus if needed
+6. **Use LEFT hand** with 1-2 fingers to scroll up/down through tracks
 
 ## Safety Features
 
@@ -121,7 +129,7 @@ Want to add more functionality? The system is extensible:
 Example ideas:
 - **Thumbs Up:** Double-click for loading tracks quickly
 - **Thumbs Down:** Minimize/maximize window
-- **Swipe gestures:** Scroll up/down
+- **Pointing gesture:** Left click (currently detected but not mapped)
 - **Two hands:** Multi-touch gestures
 
 ## Troubleshooting

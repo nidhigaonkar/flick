@@ -34,9 +34,7 @@ class MouseController:
         
         # Scroll state tracking
         self.is_scrolling = False
-        self.last_scroll_y = None
-        self.scroll_threshold = 0.02  # Minimum Y movement to trigger scroll
-        self.scroll_cooldown = 0.1  # Seconds between scroll events
+        self.scroll_cooldown = 0.05  # Seconds between scroll events (prevents scroll spam)
         self.last_scroll_time = 0
         
         # Dead zone (small movements ignored)
@@ -138,49 +136,42 @@ class MouseController:
     
     def handle_scroll_gesture(self, hand_data: Dict):
         """
-        Handle scroll gesture (one finger extended moving up/down)
+        Handle scroll gesture based on finger count
+        - 1 finger extended = scroll up
+        - 2 fingers extended = scroll down
         
         Args:
             hand_data: Hand information with gesture flags and position
         """
         extended_fingers = hand_data.get('extended_fingers', 0)
-        palm_y = hand_data['palm_position']['y']
         current_time = time.time()
         
         # One or two fingers extended = scroll mode
         if extended_fingers == 1 or extended_fingers == 2:
-            if not self.is_scrolling:
-                # Start scrolling
-                self.is_scrolling = True
-                self.last_scroll_y = palm_y
+            # Check if enough time has passed since last scroll
+            if current_time - self.last_scroll_time >= self.scroll_cooldown:
+                # Fixed scroll amount per gesture
+                scroll_amount = 3  # Small, smooth scroll amount
+                
+                if extended_fingers == 1:
+                    # 1 finger = scroll up
+                    pyautogui.scroll(scroll_amount)
+                    if not self.is_scrolling:
+                        print(f"📜 ⬆️  Scroll UP mode (1 finger)")
+                        self.is_scrolling = True
+                elif extended_fingers == 2:
+                    # 2 fingers = scroll down
+                    pyautogui.scroll(-scroll_amount)
+                    if not self.is_scrolling:
+                        print(f"📜 ⬇️  Scroll DOWN mode (2 fingers)")
+                        self.is_scrolling = True
+                
                 self.last_scroll_time = current_time
-            else:
-                # Check if enough movement to scroll
-                if current_time - self.last_scroll_time > self.scroll_cooldown:
-                    y_diff = palm_y - self.last_scroll_y
-                    
-                    if abs(y_diff) > self.scroll_threshold:
-                        # Determine scroll direction and amount
-                        # Scale movement to scroll units (more sensitive)
-                        scroll_amount = int(abs(y_diff) * 15)  # Increased sensitivity
-                        scroll_amount = min(scroll_amount, 30)  # Cap at reasonable amount
-                        
-                        if y_diff > 0:
-                            # Hand moved down (y increases) = scroll down
-                            pyautogui.scroll(-scroll_amount)
-                            print(f"📜 Scrolled down {scroll_amount}")
-                        else:
-                            # Hand moved up (y decreases) = scroll up
-                            pyautogui.scroll(scroll_amount)
-                            print(f"📜 Scrolled up {scroll_amount}")
-                        
-                        self.last_scroll_y = palm_y
-                        self.last_scroll_time = current_time
         else:
-            # Stop scrolling if not one finger
+            # Stop scrolling if not one or two fingers
             if self.is_scrolling:
                 self.is_scrolling = False
-                self.last_scroll_y = None
+                print(f"📜 Scroll mode deactivated")
     
     def cleanup(self):
         """Clean up - ensure nothing stuck"""
