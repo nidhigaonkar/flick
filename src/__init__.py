@@ -1,7 +1,7 @@
 """
-Flick - Hand Gesture DJ Controller
-Control YouDJ with computer vision-powered hand gestures
+Flick - Hand Gesture Mouse Controller
+Control your computer with hand gestures
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 

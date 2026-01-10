@@ -27,15 +27,17 @@ class MouseController:
         self.last_cursor_y = self.screen_height / 2
         
         # Gesture state tracking
-        self.is_dragging = False
         self.last_click_time = 0
         self.click_cooldown = 0.3  # Seconds between clicks
+        self.is_pinching = False  # Track pinch state for drag
+        self.is_mouse_down = False  # Track if mouse button is held
         
         # Scroll state tracking
         self.is_scrolling = False
         self.last_scroll_y = None
         self.scroll_threshold = 0.02  # Minimum Y movement to trigger scroll
         self.scroll_cooldown = 0.1  # Seconds between scroll events
+        self.last_scroll_time = 0
         
         # Dead zone (small movements ignored)
         self.dead_zone = 5  # pixels
@@ -55,7 +57,7 @@ class MouseController:
         palm_pos = hand_data['palm_position']
         
         # Convert normalized hand position (0-1) to screen coordinates
-        # Direct mapping: hand left = cursor left, hand right = cursor right
+        # Direct mapping: hand right = cursor right, hand left = cursor left
         target_x = int(palm_pos['x'] * self.screen_width)
         target_y = int(palm_pos['y'] * self.screen_height)
         
@@ -82,47 +84,41 @@ class MouseController:
     def _handle_gestures(self, hand_data: Dict):
         """
         Handle click and drag gestures
+        RIGHT HAND ONLY: Pinch to drag, Peace for right-click
         
         Args:
             hand_data: Hand information with gesture flags
         """
         current_time = time.time()
-        is_pointing = hand_data.get('is_pointing', False)
         is_pinching = hand_data.get('is_pinching', False)
         is_peace = hand_data.get('is_peace', False)
         
-        # Pinch = Drag (hold mouse button and move)
+        # Pinch = Click and Drag (RIGHT HAND)
         if is_pinching:
-            if not self.is_dragging:
-                # Start dragging
+            if not self.is_pinching:
+                # Pinch just started - mouse down
                 try:
                     pyautogui.mouseDown()
-                    self.is_dragging = True
-                    print("🖱️ Drag started")
+                    self.is_pinching = True
+                    self.is_mouse_down = True
+                    print("🖱️ Pinch - Mouse Down (start drag)")
                 except Exception as e:
-                    print(f"Error starting drag: {e}")
+                    print(f"Error mouse down: {e}")
+            # While pinching, cursor continues to move (handled in update_from_hand)
+            # This allows dragging
         else:
-            if self.is_dragging:
-                # Stop dragging
+            # Pinch ended - mouse up
+            if self.is_pinching:
                 try:
                     pyautogui.mouseUp()
-                    self.is_dragging = False
-                    print("🖱️ Drag ended")
+                    self.is_pinching = False
+                    self.is_mouse_down = False
+                    print("🖱️ Pinch Released - Mouse Up (end drag)")
                 except Exception as e:
-                    print(f"Error ending drag: {e}")
+                    print(f"Error mouse up: {e}")
         
-        # Pointing = Click (with cooldown to prevent spam)
-        if is_pointing and not self.is_dragging:
-            if current_time - self.last_click_time > self.click_cooldown:
-                try:
-                    pyautogui.click()
-                    self.last_click_time = current_time
-                    print("🖱️ Click!")
-                except Exception as e:
-                    print(f"Error clicking: {e}")
-        
-        # Peace sign = Right click
-        if is_peace and not self.is_dragging:
+        # Peace sign = Right click (only when not pinching)
+        if not is_pinching and is_peace:
             if current_time - self.last_click_time > self.click_cooldown:
                 try:
                     pyautogui.rightClick()
@@ -142,16 +138,17 @@ class MouseController:
     
     def handle_scroll_gesture(self, hand_data: Dict):
         """
-        Handle scroll gesture (two fingers together moving up/down)
+        Handle scroll gesture (one finger extended moving up/down)
         
         Args:
             hand_data: Hand information with gesture flags and position
         """
-        is_two_fingers = hand_data.get('is_two_fingers', False)
+        extended_fingers = hand_data.get('extended_fingers', 0)
         palm_y = hand_data['palm_position']['y']
         current_time = time.time()
         
-        if is_two_fingers:
+        # One or two fingers extended = scroll mode
+        if extended_fingers == 1 or extended_fingers == 2:
             if not self.is_scrolling:
                 # Start scrolling
                 self.is_scrolling = True
@@ -164,8 +161,9 @@ class MouseController:
                     
                     if abs(y_diff) > self.scroll_threshold:
                         # Determine scroll direction and amount
-                        scroll_amount = int(abs(y_diff) * 10)  # Scale movement to scroll units
-                        scroll_amount = min(scroll_amount, 20)  # Cap at reasonable amount
+                        # Scale movement to scroll units (more sensitive)
+                        scroll_amount = int(abs(y_diff) * 15)  # Increased sensitivity
+                        scroll_amount = min(scroll_amount, 30)  # Cap at reasonable amount
                         
                         if y_diff > 0:
                             # Hand moved down (y increases) = scroll down
@@ -179,16 +177,19 @@ class MouseController:
                         self.last_scroll_y = palm_y
                         self.last_scroll_time = current_time
         else:
-            # Stop scrolling
+            # Stop scrolling if not one finger
             if self.is_scrolling:
                 self.is_scrolling = False
                 self.last_scroll_y = None
     
     def cleanup(self):
-        """Clean up - ensure mouse button is released"""
-        if self.is_dragging:
+        """Clean up - ensure nothing stuck"""
+        # Release mouse button if it's held down
+        if self.is_mouse_down:
             try:
                 pyautogui.mouseUp()
+                self.is_mouse_down = False
+                print("🛑 Released mouse button on cleanup")
             except:
                 pass
 
@@ -211,9 +212,9 @@ if __name__ == "__main__":
     
     print("\nControls:")
     print("- Move hand = Move cursor")
-    print("- Point (index finger) = Click")
-    print("- Pinch (thumb + index) = Drag")
+    print("- Pinch (thumb + index) = Click & Drag")
     print("- Peace sign = Right click")
+    print("- Left hand: 1 finger extended + move up/down = Scroll")
     print("- Press 'q' to quit")
     
     try:
@@ -227,9 +228,8 @@ if __name__ == "__main__":
                 # Show gesture status on frame
                 hand = hands_data[0]
                 status = []
-                if hand.get('is_pointing'): status.append("POINTING")
-                if hand.get('is_pinching'): status.append("PINCHING")
-                if hand.get('is_peace'): status.append("PEACE")
+                if hand.get('is_pinching'): status.append("PINCHING (DRAG)")
+                if hand.get('is_peace'): status.append("PEACE (RIGHT-CLICK)")
                 
                 if status:
                     cv2.putText(frame, " | ".join(status), (10, 30),

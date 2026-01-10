@@ -1,6 +1,6 @@
 """
 Flick - Hand Gesture Mouse Controller
-Main application entry point
+Control your mouse cursor and scroll with hand gestures
 """
 
 import time
@@ -105,13 +105,20 @@ class FlickApp:
                         elif hand['label'] == 'Right':
                             right_hand = hand
                     
-                    # Right hand ONLY controls mouse cursor (move, click, drag)
+                    # Check for left hand with one or two fingers extended (scroll gesture)
+                    scroll_hand = None
+                    if left_hand:
+                        extended_fingers = left_hand.get('extended_fingers', 0)
+                        if extended_fingers == 1 or extended_fingers == 2:
+                            scroll_hand = left_hand
+                    
+                    # Handle scrolling if left hand with one or two fingers detected
+                    if scroll_hand:
+                        self.mouse_controller.handle_scroll_gesture(scroll_hand)
+                    
+                    # Update mouse controller with right hand (always, regardless of scroll)
                     if right_hand:
                         self.mouse_controller.update_from_hand(right_hand)
-                    
-                    # Left hand with two fingers together ONLY controls scrolling (anywhere on screen)
-                    if left_hand and left_hand.get('is_two_fingers', False):
-                        self.mouse_controller.handle_scroll_gesture(left_hand)
                     
                     # Update UI status
                     self._update_ui_status_mouse(hands_data)
@@ -143,42 +150,53 @@ class FlickApp:
         status['left_hand'] = "✅ Detected" if left_detected else "❌ Not detected"
         status['right_hand'] = "✅ Detected" if right_detected else "❌ Not detected"
         
-        # Get hand gestures
-        left_hand = None
-        right_hand = None
+        # Get primary hand gestures
+        primary_hand = None
+        for hand in hands_data:
+            if hand['label'] == 'Right':
+                primary_hand = hand
+                break
+        if not primary_hand and hands_data:
+            primary_hand = hands_data[0]
+        
+        # Check for scroll gesture first (left hand, one or two fingers)
+        scroll_hand = None
         for hand in hands_data:
             if hand['label'] == 'Left':
-                left_hand = hand
-            elif hand['label'] == 'Right':
-                right_hand = hand
+                extended_fingers = hand.get('extended_fingers', 0)
+                if extended_fingers == 1 or extended_fingers == 2:
+                    scroll_hand = hand
+                    break
         
-        # Show right hand gestures (mouse control ONLY)
-        if right_hand:
+        if scroll_hand:
+            # Scrolling active
+            extended_fingers = scroll_hand.get('extended_fingers', 0)
+            status['crossfader'] = "📜 SCROLLING"
+            status['volume_left'] = f"{extended_fingers} Finger{'s' if extended_fingers > 1 else ''} Extended"
+            palm_y = scroll_hand['palm_position']['y']
+            status['volume_right'] = f"Y: {palm_y:.2f}"
+            status['filter'] = "Move up/down to scroll"
+        elif primary_hand:
+            # Show active gestures
             gestures = []
-            if right_hand.get('is_pointing'):
-                gestures.append('👆 CLICK')
-            if right_hand.get('is_pinching'):
+            if primary_hand.get('is_pinching'):
                 gestures.append('🤏 DRAG')
-            if right_hand.get('is_peace'):
+            if primary_hand.get('is_peace'):
                 gestures.append('✌️ RIGHT-CLICK')
-            if right_hand.get('is_open'):
+            if primary_hand.get('is_open'):
                 gestures.append('🫳 OPEN')
-            if not right_hand.get('is_open') and not any([right_hand.get('is_pointing'), right_hand.get('is_pinching'), right_hand.get('is_peace')]):
+            if not primary_hand.get('is_open') and not any([primary_hand.get('is_pinching'), primary_hand.get('is_peace')]):
                 gestures.append('✊ CLOSED')
             
             status['crossfader'] = " | ".join(gestures) if gestures else "Move cursor"
-            status['volume_left'] = f"X: {right_hand['palm_position']['x']:.2f}"
-            status['volume_right'] = f"Y: {right_hand['palm_position']['y']:.2f}"
+            status['volume_left'] = f"X: {primary_hand['palm_position']['x']:.2f}"
+            status['volume_right'] = f"Y: {primary_hand['palm_position']['y']:.2f}"
+            status['filter'] = "Mouse mode"
         else:
-            status['crossfader'] = "No right hand"
+            status['crossfader'] = "--"
             status['volume_left'] = "--"
             status['volume_right'] = "--"
-        
-        # Show left hand scroll gesture
-        if left_hand and left_hand.get('is_two_fingers', False):
-            status['filter'] = "📜 SCROLLING"
-        else:
-            status['filter'] = "Mouse mode"
+            status['filter'] = "--"
         
         self.ui.update_gesture_status(status)
     

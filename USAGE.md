@@ -2,14 +2,12 @@
 
 ## Gesture Controls
 
-### Left Hand Controls
+### Left Hand Controls (Scroll Only)
 
 | Gesture | Control | Description |
 |---------|---------|-------------|
-| **X Position** (left/right) | Crossfader | Move hand left/right to balance between decks |
-| **Y Position** (up/down) | Left Deck Volume | Raise hand = louder, lower hand = quieter |
-| **Open Palm** | Play Left Deck | Spread fingers to play |
-| **Closed Fist** | Pause Left Deck | Close hand to pause |
+| **1 Finger Extended + Move Up** | Scroll Up | Extend index finger and move hand upward |
+| **2 Fingers Together + Move Down** | Scroll Down | Touch index & middle fingers together and move hand downward |
 
 ### Right Hand Controls
 
