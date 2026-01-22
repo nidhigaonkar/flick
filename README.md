@@ -1,4 +1,4 @@
-# Flick ✋
+# Flick 
 
 **Control your computer with hand gestures!**
 
@@ -14,6 +14,7 @@ Flick is a computer vision-powered desktop app that lets you control your mouse 
 - ⚙️ Customizable smoothing and sensitivity
 
 ## Gesture Controls
+Try them out while on this DJ website: https://youdj.online/ 
 
 ### Left Hand (Scroll Only)
 | Gesture | Control |
@@ -28,18 +29,6 @@ Flick is a computer vision-powered desktop app that lets you control your mouse 
 | Pinch (thumb + index) | Click & Drag |
 | Peace Sign (✌️) | Right Click |
 
-## Installation
-
-1. Clone the repository
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Run Flick:
-```bash
-python src/main.py
-```
 
 ## Requirements
 
@@ -62,4 +51,4 @@ python src/main.py
 
 ---
 
-*Control your computer naturally with hand gestures*
+*DJ with the Air*
