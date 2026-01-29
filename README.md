@@ -1,19 +1,11 @@
-# Flick ✋
+# Flick 
 
 **Control your computer with hand gestures!**
 
-Flick is a computer vision-powered desktop app that lets you control your mouse cursor and scroll using hand gestures. No hardware needed - just your webcam.
-
-## Features
-
-- 🖐️ Real-time hand tracking with MediaPipe
-- 🖱️ Control mouse cursor with hand movements
-- 📜 Scroll with intuitive finger gestures
-- 🖱️ Click and right-click with hand gestures
-- 🎨 Visual feedback and gesture preview
-- ⚙️ Customizable smoothing and sensitivity
+Flick is a computer vision-powered app that lets you control your mouse cursor and scroll using hand gestures through real-time hand tracking with MediaPipe.
 
 ## Gesture Controls
+Try them out while on this DJ website: https://youdj.online/ 
 
 ### Left Hand (Scroll Only)
 | Gesture | Control |
@@ -26,7 +18,7 @@ Flick is a computer vision-powered desktop app that lets you control your mouse 
 |---------|---------|
 | Hand Movement | Move Cursor |
 | Pinch (thumb + index) | Click & Drag |
-| Peace Sign (✌️) | Right Click |
+
 
 ## Installation
 
@@ -41,11 +33,6 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-## Requirements
-
-- Python 3.10+
-- Webcam
-- macOS, Windows, or Linux
 
 ## Usage
 
@@ -62,4 +49,4 @@ python src/main.py
 
 ---
 
-*Control your computer naturally with hand gestures*
+*DJ with the Air*
