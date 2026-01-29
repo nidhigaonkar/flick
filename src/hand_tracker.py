@@ -85,7 +85,12 @@ class HandTracker:
                 # Download or get the default hand landmarker model
                 model_path = self._get_hand_landmarker_model()
                 
-                base_options = python.BaseOptions(model_asset_path=model_path)
+                # Use CPU delegate to avoid GPU/OpenGL issues on macOS
+                base_options = python.BaseOptions(
+                    model_asset_path=model_path,
+                    delegate=python.BaseOptions.Delegate.CPU
+                )
+                print(f"DEBUG: delegate set to {base_options.delegate} (CPU=0, GPU=1)")
                 options = vision.HandLandmarkerOptions(
                     base_options=base_options,
                     num_hands=max_hands,
